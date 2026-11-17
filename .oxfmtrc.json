@@ -1,0 +1,10 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "ignorePatterns": ["build", ".svelte-kit", "src-tauri/target"],
+  "svelte": true,
+  "sortImports": true,
+  "sortTailwindcss": {
+    "stylesheet": "./src/app.css",
+    "functions": ["cn"]
+  }
+}

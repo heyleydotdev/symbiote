@@ -1,0 +1,3 @@
+# Symbiote
+
+Tauri + SvelteKit + TypeScript.
