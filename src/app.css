@@ -1,1 +1,34 @@
 @import "tailwindcss";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+@import "@fontsource-variable/noto-sans-sinhala";
+
+@theme {
+  --font-sans: "Geist Variable", "Noto Sans Sinhala Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Mono", monospace;
+  --font-sinhala:
+    "Noto Sans Sinhala Variable", "Iskoola Pota", "Nirmala UI", "Sinhala Sangam MN", sans-serif;
+
+  --color-border: var(--border);
+}
+
+:root {
+  color-scheme: dark;
+
+  --border: --alpha(var(--color-white) / 5%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-neutral-900 text-neutral-100;
+  }
+  html {
+    @apply font-sans antialiased;
+  }
+  :lang(si) {
+    font-family: var(--font-sinhala);
+  }
+}
