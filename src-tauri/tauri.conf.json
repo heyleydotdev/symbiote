@@ -12,9 +12,14 @@
   "app": {
     "windows": [
       {
-        "title": "symbiote",
-        "width": 800,
-        "height": 600
+        "title": "Symbiote",
+        "width": 1200,
+        "height": 720,
+        "minWidth": 720,
+        "minHeight": 480,
+        "center": true,
+        "theme": "Dark",
+        "backgroundColor": "#09090b"
       }
     ],
     "security": {
