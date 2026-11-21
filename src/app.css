@@ -1,21 +1,46 @@
+@layer ui-sdk;
 @import "tailwindcss";
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 @import "@fontsource-variable/noto-sans-sinhala";
 
-@theme {
+@theme inline {
   --font-sans: "Geist Variable", "Noto Sans Sinhala Variable", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono Variable", ui-monospace, "Cascadia Mono", monospace;
   --font-sinhala:
     "Noto Sans Sinhala Variable", "Iskoola Pota", "Nirmala UI", "Sinhala Sangam MN", sans-serif;
 
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-muted: var(--muted);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-ring: var(--ring);
+
+  --color-elevated: var(--elevated);
+  --color-elevated-hover: var(--elevated-hover);
+  --color-sidebar: var(--sidebar);
+  --color-hover: var(--hover);
 }
 
 :root {
   color-scheme: dark;
 
+  --background: var(--color-neutral-900);
+  --foreground: var(--color-neutral-300);
+  --muted-foreground: var(--color-neutral-400);
+
+  --muted: --alpha(var(--color-white) / 5%);
   --border: --alpha(var(--color-white) / 5%);
+  --border-strong: --alpha(var(--color-white) / 10%);
+  --ring: --alpha(var(--color-white) / 15%);
+
+  --elevated: color-mix(in oklab, var(--color-neutral-700), var(--color-neutral-800) 80%);
+  --elevated-hover: color-mix(in oklab, var(--color-neutral-800), var(--color-white) 5%);
+  --sidebar: color-mix(in oklab, var(--color-neutral-800), var(--color-neutral-900));
+  --hover: color-mix(in oklab, var(--sidebar), var(--color-white) 5%);
 }
 
 @layer base {
@@ -23,7 +48,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-neutral-900 text-neutral-100;
+    @apply bg-background font-[440] text-muted-foreground;
   }
   html {
     @apply font-sans antialiased;

@@ -1,0 +1,70 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "opencode-go/deepseek-v4.1-flash",
+  "agents": {
+    "plan": { "model": "opencode-go/deepseek-v4.1-flash" },
+    "build": { "model": "opencode-go/deepseek-v4.1-flash" },
+    "explore": { "model": "ollama/qwen2.5-coder:7b" },
+    "title": { "model": "ollama/qwen2.5-coder:7b" },
+    "commit": {
+      "description": "Stages and commits changes with the local Ollama model",
+      "mode": "subagent",
+      "model": "ollama/qwen2.5-coder:7b",
+      "system": "Inspect git status and diff, then commit the changes the user asked for. Load the caveman-commit skill and follow it for the message. Never push.",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "git status*", "effect": "allow" },
+        { "action": "shell", "resource": "git diff*", "effect": "allow" },
+        { "action": "shell", "resource": "git log*", "effect": "allow" },
+        { "action": "shell", "resource": "git add *", "effect": "allow" },
+        { "action": "shell", "resource": "git commit*", "effect": "allow" },
+        { "action": "skill", "resource": "*", "effect": "deny" },
+        { "action": "skill", "resource": "caveman-commit", "effect": "allow" },
+      ],
+    },
+    "changelog": {
+      "description": "Drafts changelog or release notes from git history",
+      "mode": "subagent",
+      "model": "ollama/qwen2.5-coder:7b",
+      "system": "Read git history and summarize it as concise changelog entries grouped by type. Never modify files.",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "git log*", "effect": "allow" },
+        { "action": "shell", "resource": "git diff*", "effect": "allow" },
+        { "action": "shell", "resource": "git show*", "effect": "allow" },
+      ],
+    },
+    "ask": {
+      "description": "Answers questions about specific files",
+      "mode": "subagent",
+      "model": "ollama/qwen2.5-coder:7b",
+      "system": "Answer questions about the files you are given. Be concise. Never modify files.",
+      "permissions": [
+        { "action": "edit", "resource": "*", "effect": "deny" },
+        { "action": "shell", "resource": "*", "effect": "deny" },
+      ],
+    },
+  },
+  "commands": {
+    "fixtures": {
+      "description": "Generates SRT or test fixture data",
+      "model": "ollama/qwen2.5-coder:7b",
+      "template": "Create or extend test fixtures for $ARGUMENTS. Use fake cue text, valid SRT timecodes, and keep the existing test layout. Do not change production code.",
+    },
+    "explain-log": {
+      "description": "Summarizes a long log or error",
+      "model": "ollama/qwen2.5-coder:7b",
+      "template": "Summarize this log or error, state the likely root cause, and list the next command to run:\n\n$ARGUMENTS",
+    },
+  },
+  "formatter": {
+    "oxfmt": {
+      "extensions": [".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx", ".mts", ".cts", ".svelte"],
+    },
+  },
+  "watcher": {
+    "ignore": ["build/**", ".svelte-kit/**", "src-tauri/target/**", "models/**"],
+  },
+}
