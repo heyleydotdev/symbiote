@@ -60,7 +60,7 @@ function Home() {
 
   const needle = query.trim().toLowerCase();
   const projects = loaded ?? [];
-  const loading = loaded === null;
+  const pending = loaded === null && loadError === null;
   const visible =
     needle === ""
       ? projects
@@ -80,13 +80,13 @@ function Home() {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
-          {loading && <p className="px-2 py-1.5 text-xs text-muted">Loading…</p>}
-          {!loading && visible.length === 0 && (
+          {pending && <p className="px-2 py-1.5 text-xs text-muted">Loading…</p>}
+          {!pending && loadError === null && visible.length === 0 && (
             <p className="px-2 py-1.5 text-xs text-muted">
               {projects.length === 0 ? "No projects yet." : "No projects match your search."}
             </p>
           )}
-          {!loading && visible.length > 0 && (
+          {!pending && visible.length > 0 && (
             <ProjectList
               projects={visible}
               onOpen={(project) => void openProject(project.path)}
