@@ -13,7 +13,7 @@ export function DialogContent({ className, ...props }: ComponentProps<typeof UiD
   return (
     <UiDialogContent
       className={cn(
-        "fixed inset-0 m-auto h-fit w-full max-w-md rounded-lg border border-border bg-surface p-5 text-foreground shadow-2xl outline-none backdrop:bg-black/60",
+        "fixed inset-0 m-auto h-fit w-full max-w-md rounded-lg border border-border bg-surface p-5 text-foreground shadow-2xl outline-hidden backdrop:bg-black/60",
         className,
       )}
       {...props}

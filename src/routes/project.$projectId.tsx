@@ -47,7 +47,7 @@ function ProjectPage() {
       <header className="flex items-center gap-3 border-b border-border px-3 py-2">
         <Link
           to="/"
-          className="rounded-md px-2 py-1 text-sm text-muted outline-none hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+          className="rounded-md px-2 py-1 text-sm text-muted outline-hidden hover:bg-foreground/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           ← Projects
         </Link>

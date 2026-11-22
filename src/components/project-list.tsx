@@ -23,7 +23,7 @@ export function ProjectList({ projects, onOpen, onForget }: ProjectListProps) {
             disabled={project.missing}
             title={project.path}
             onClick={() => onOpen(project)}
-            className="flex min-w-0 flex-1 flex-col items-start rounded-md px-2 py-1.5 text-start outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed"
+            className="flex min-w-0 flex-1 flex-col items-start rounded-md px-2 py-1.5 text-start outline-hidden focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed"
           >
             <span className="w-full truncate text-sm">{project.name}</span>
             <span className={cn("text-xs text-muted", project.missing && "text-danger")}>
