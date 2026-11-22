@@ -16,7 +16,9 @@
     "format:check": "oxfmt --check",
     "test": "bun test",
     "test:watch": "bun test --watch",
-    "check": "bun run typecheck && bun run lint && bun run format:check && bun run test"
+    "check:frontend": "bun run typecheck && bun run lint && bun run format:check && bun run test",
+    "check:rust": "cargo fmt --manifest-path src-tauri/Cargo.toml --check && cargo test --manifest-path src-tauri/Cargo.toml",
+    "check": "bun run check:frontend && bun run check:rust"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.46",
