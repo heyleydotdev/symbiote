@@ -12,7 +12,7 @@ const LoggerLayer = Logger.layer([isDev ? Logger.consolePrettyBrowser() : Logger
 const appRuntime = ManagedRuntime.make(ProjectService.layer.pipe(Layer.provideMerge(LoggerLayer)));
 
 export function runProject<A, E>(
-  use: (service: ProjectService["Service"]) => Effect.Effect<A, E>,
+  program: (service: ProjectService["Service"]) => Effect.Effect<A, E>,
 ): Promise<A> {
-  return appRuntime.runPromise(ProjectService.use(use));
+  return appRuntime.runPromise(ProjectService.use(program));
 }
