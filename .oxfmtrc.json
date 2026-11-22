@@ -1,6 +1,12 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
-  "ignorePatterns": ["build", "src-tauri/target", "src/routeTree.gen.ts", "opencode.jsonc"],
+  "ignorePatterns": [
+    ".agents",
+    "build",
+    "src-tauri/target",
+    "src/routeTree.gen.ts",
+    "opencode.jsonc"
+  ],
   "sortImports": true,
   "sortTailwindcss": {
     "stylesheet": "./src/globals.css",
