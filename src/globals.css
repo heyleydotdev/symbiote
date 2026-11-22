@@ -1,1 +1,41 @@
 @import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-danger: var(--danger);
+}
+
+:root {
+  color-scheme: dark;
+
+  --background: oklch(0.18 0.005 270);
+  --surface: oklch(0.22 0.006 270);
+  --foreground: oklch(0.94 0.004 270);
+  --muted: oklch(0.66 0.01 270);
+  --border: --alpha(var(--color-white) / 10%);
+  --primary: oklch(0.6 0.19 265);
+  --primary-foreground: oklch(0.99 0 0);
+  --danger: oklch(0.65 0.19 20);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+}
