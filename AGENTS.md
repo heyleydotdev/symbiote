@@ -62,8 +62,8 @@ Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agen
 
 ### UI components (ui-sdk)
 
-Before using ui-sdk, follow the `ui-sdk` skill if it's installed, then read `node_modules/@ui-sdk/react/docs/llms.txt`.
+Follow the `ui-sdk` skill if it's installed. For each component you use, read `node_modules/@ui-sdk/react/docs/components/<entry>.md`; `llms.txt` is only the index.
 
-To build a new component, also search `node_modules/@ui-sdk/react/docs/core.md` by heading, and read `rendering.md` next to it.
+To build a component ui-sdk doesn't ship, search `node_modules/@ui-sdk/react/docs/core.md` by heading, and read `rendering.md` next to it.
 
 Components come per-entry (`@ui-sdk/react/button`), never from a root import. They are unstyled; style them with Tailwind utilities, not class names.

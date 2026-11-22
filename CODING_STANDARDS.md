@@ -268,7 +268,7 @@ setCount(count + 1);
 
 Reach for ui-sdk before hand-rolling interactive UI: it owns focus, keyboard, selection, popup and ARIA behavior, and its components are unstyled so they fit our Tailwind setup.
 
-- Before writing any ui-sdk code, follow the `ui-sdk` skill (if installed), then read `node_modules/@ui-sdk/react/docs/llms.txt`.
+- Before writing any ui-sdk code, follow the `ui-sdk` skill (if installed), then read `node_modules/@ui-sdk/react/docs/components/<entry>.md` for each component you use.
 - Building a component ui-sdk doesn't ship? Search `node_modules/@ui-sdk/react/docs/core.md` by heading and read `rendering.md` next to it.
 - Import per entry — `import { Dialog, DialogTrigger } from "@ui-sdk/react/dialog"`. There is no root import from `@ui-sdk/react`.
 - Components ship unstyled: style them with the Tailwind utilities and theme tokens from [CSS & Tailwind](#css--tailwind), never with class names.
