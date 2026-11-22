@@ -198,6 +198,20 @@ export function Button(props) {
 }
 ```
 
+### Component Placement
+
+Every reusable component lives in one of two folders:
+
+| Tier     | Folder               | What belongs there                                                                                                 |
+| -------- | -------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Base     | `src/components/ui/` | One file per ui-sdk entry, e.g. `button.tsx`, `dialog.tsx`. This is the only place that imports `@ui-sdk/react/*`. |
+| Composed | `src/components/`    | Components built from base components plus app data, e.g. `project-card.tsx`, `app-sidebar.tsx`.                   |
+
+- A component used by more than one route or screen is reusable by definition — it belongs in one of those folders, not in `src/routes`.
+- Base components repeat the look (`cva`, sizes, `cn`) once so screens never restyle ui-sdk parts by hand.
+- When a base component starts taking app-specific props (routing, queries, domain types), keep the generic part in `ui/` and move the app-facing wrapper to `components/`. Never let `components/ui` depend on app code.
+- Refactor instead of copying: if you find a component (or duplicated JSX) in a route that qualifies, move it to the right tier, update every import, and delete the old copy. Leaving a duplicate is a bug.
+
 ### Custom Hooks
 
 ```typescript
@@ -249,6 +263,16 @@ setCount(count + 1);
   ) : null;
 }
 ```
+
+### UI components (ui-sdk)
+
+Reach for ui-sdk before hand-rolling interactive UI: it owns focus, keyboard, selection, popup and ARIA behavior, and its components are unstyled so they fit our Tailwind setup.
+
+- Before writing any ui-sdk code, follow the `ui-sdk` skill (if installed), then read `node_modules/@ui-sdk/react/docs/llms.txt`.
+- Building a component ui-sdk doesn't ship? Search `node_modules/@ui-sdk/react/docs/core.md` by heading and read `rendering.md` next to it.
+- Import per entry — `import { Dialog, DialogTrigger } from "@ui-sdk/react/dialog"`. There is no root import from `@ui-sdk/react`.
+- Components ship unstyled: style them with the Tailwind utilities and theme tokens from [CSS & Tailwind](#css--tailwind), never with class names.
+- Custom components are built from primitives (`definePrimitive`) in `@ui-sdk/core`; follow the docs rather than inventing a new interaction pattern.
 
 ## CSS & Tailwind
 
@@ -415,7 +439,9 @@ export async function greet(name: string): Promise<string> {
 ```
 src/
 ├── routes/             # file-based routes (TanStack Router)
-├── components/         # reusable UI
+├── components/
+│   ├── ui/             # base components wrapping ui-sdk entries
+│   └── *               # composed reusable components
 ├── hooks/              # custom React hooks
 ├── lib/                # utilities and typed Tauri wrappers
 ├── globals.css         # Tailwind entry, design tokens, dark mode
@@ -429,8 +455,8 @@ All frontend files use kebab-case. Component names stay PascalCase inside the fi
 
 ```
 routes/__root.tsx           # router conventions are exceptions (__root, index)
-components/button.tsx       # exports Button
-components/project-card.tsx # exports ProjectCard
+components/ui/button.tsx    # base Button wrapping @ui-sdk/react/button
+components/project-card.tsx # composed ProjectCard
 globals.css                 # Tailwind entry
 hooks/use-auth.ts           # exports useAuth
 lib/format-date.ts          # exports formatDate
