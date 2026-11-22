@@ -13,7 +13,7 @@ use std::{
 
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
-use tracing::{debug, info, warn};
+use tracing::{debug, info, instrument, warn};
 
 pub const PROJECT_VERSION: u32 = 1;
 
@@ -120,6 +120,7 @@ pub struct RecentEntry {
     pub opened_at: i64,
 }
 
+/// Milliseconds since the Unix epoch, used for every timestamp we store.
 pub fn now_millis() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -127,6 +128,8 @@ pub fn now_millis() -> i64 {
         .unwrap_or_default()
 }
 
+/// Trims a project name and rejects anything that is not a safe single path
+/// segment, including Windows device names.
 pub fn validate_name(name: &str) -> Result<String, ProjectError> {
     let trimmed = name.trim();
 
@@ -183,10 +186,14 @@ pub fn validate_name(name: &str) -> Result<String, ProjectError> {
     Ok(trimmed.to_owned())
 }
 
+/// The file name a project gets inside its folder.
 pub fn project_file_name(name: &str) -> String {
     format!("{name}.{PROJECT_EXTENSION}")
 }
 
+/// Creates `<name>.sym` in `directory`. Fails on an invalid name or a file
+/// that already exists.
+#[instrument(skip_all, fields(name = %name))]
 pub fn create_project_in(
     directory: &Path,
     name: &str,
@@ -235,6 +242,9 @@ pub fn create_project_in(
     Ok((path, project))
 }
 
+/// Reads a project file. Fails on a relative path, a file without the `.sym`
+/// extension, malformed JSON, or a version this build does not support.
+#[instrument(skip_all, fields(path = %path.display()))]
 pub fn read_project(path: &Path) -> Result<Project, ProjectError> {
     if !path.is_absolute() {
         return Err(ProjectError::new(
@@ -271,17 +281,25 @@ pub fn read_project(path: &Path) -> Result<Project, ProjectError> {
     Ok(project)
 }
 
+/// Reads the recent list. A missing or corrupt file starts empty with a log
+/// line: this is a cache of what the user did, not user data.
 pub fn read_state(path: &Path) -> AppState {
-    let Ok(contents) = fs::read_to_string(path) else {
-        return AppState::default();
+    let contents = match fs::read_to_string(path) {
+        Ok(contents) => contents,
+        Err(error) => {
+            debug!(path = %path.display(), %error, "state file is not readable, starting empty");
+            return AppState::default();
+        }
     };
 
     serde_json::from_str(&contents).unwrap_or_else(|error| {
-        warn!(path = %path.display(), %error, "state file is not readable, starting empty");
+        warn!(path = %path.display(), %error, "state file is corrupt, starting empty");
         AppState::default()
     })
 }
 
+/// Writes the recent list atomically.
+#[instrument(skip_all, fields(path = %path.display()))]
 pub fn write_state(path: &Path, state: &AppState) -> Result<(), ProjectError> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
@@ -291,6 +309,8 @@ pub fn write_state(path: &Path, state: &AppState) -> Result<(), ProjectError> {
     write_atomically(path, &contents)
 }
 
+/// Moves `path` to the front of the recent list, records its folder as the
+/// place the next project goes, and drops the oldest rows.
 pub fn remember(state: &mut AppState, path: &Path, name: &str, now: i64) {
     let path = path.to_string_lossy().into_owned();
     state.recent.retain(|entry| !same_path(&entry.path, &path));
@@ -308,6 +328,7 @@ pub fn remember(state: &mut AppState, path: &Path, name: &str, now: i64) {
         .map(|parent| parent.to_string_lossy().into_owned());
 }
 
+/// Drops one row. The project file is untouched.
 pub fn forget(state: &mut AppState, path: &str) {
     state.recent.retain(|entry| !same_path(&entry.path, path));
 }
@@ -322,12 +343,35 @@ fn same_path(left: &str, right: &str) -> bool {
     }
 }
 
-/// Write to a sibling file and rename over the target, so a crash mid-write
-/// cannot leave a half-written project behind.
+/// Write to a unique sibling file and rename over the target, so a crash
+/// mid-write cannot leave a half-written project behind and no neighbouring
+/// file is ever opened for writing.
+///
+/// shortcut: rename replaces an existing target on Unix, so a file another
+/// process creates between the existence check and the rename is overwritten.
+/// Upgrade to a create-if-absent rename when concurrent writers exist.
 fn write_atomically(path: &Path, contents: &str) -> Result<(), ProjectError> {
-    let temporary = path.with_extension("tmp");
+    let directory = path.parent().ok_or_else(|| {
+        ProjectError::new(
+            ProjectErrorCode::InvalidPath,
+            "Path must be inside a folder",
+        )
+    })?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("project");
+    let temporary = directory.join(format!(
+        ".{file_name}.{}.{}.tmp",
+        std::process::id(),
+        now_millis()
+    ));
+
     let result = (|| -> io::Result<()> {
-        let mut file = fs::File::create(&temporary)?;
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
         file.write_all(contents.as_bytes())?;
         file.sync_all()?;
         fs::rename(&temporary, path)
@@ -340,22 +384,27 @@ fn write_atomically(path: &Path, contents: &str) -> Result<(), ProjectError> {
     Ok(())
 }
 
-fn app_paths(app: &AppHandle) -> Result<(PathBuf, PathBuf), ProjectError> {
-    let data_dir = app
-        .path()
+fn state_file_path(app: &AppHandle) -> Result<PathBuf, ProjectError> {
+    app.path()
         .app_data_dir()
-        .map_err(|error| ProjectError::new(ProjectErrorCode::Io, error.to_string()))?;
-    let documents_dir = app
-        .path()
-        .document_dir()
-        .map_err(|error| ProjectError::new(ProjectErrorCode::Io, error.to_string()))?;
-    Ok((data_dir.join(STATE_FILE), documents_dir))
+        .map(|directory| directory.join(STATE_FILE))
+        .map_err(|error| ProjectError::new(ProjectErrorCode::Io, error.to_string()))
 }
 
+/// `Documents/Symbiote`: where a first project goes.
+fn default_project_folder(app: &AppHandle) -> Result<PathBuf, ProjectError> {
+    app.path()
+        .document_dir()
+        .map(|directory| directory.join(DEFAULT_PROJECTS_FOLDER))
+        .map_err(|error| ProjectError::new(ProjectErrorCode::Io, error.to_string()))
+}
+
+/// Rows for the Projects Page, newest first. A row whose file is gone comes
+/// back marked `missing` instead of being dropped.
+#[instrument(skip_all)]
 #[tauri::command]
 pub fn list_projects(app: AppHandle) -> Result<Vec<RecentProject>, ProjectError> {
-    let (state_path, _) = app_paths(&app)?;
-    let state = read_state(&state_path);
+    let state = read_state(&state_file_path(&app)?);
 
     Ok(state
         .recent
@@ -375,22 +424,23 @@ pub fn list_projects(app: AppHandle) -> Result<Vec<RecentProject>, ProjectError>
         .collect())
 }
 
+/// The folder a new project should go in: the last one used, else
+/// `Documents/Symbiote`.
+#[instrument(skip_all)]
 #[tauri::command]
 pub fn default_project_dir(app: AppHandle) -> Result<String, ProjectError> {
-    let (state_path, documents_dir) = app_paths(&app)?;
-
-    if let Some(directory) = read_state(&state_path).last_project_dir {
+    if let Some(directory) = read_state(&state_file_path(&app)?).last_project_dir {
         if Path::new(&directory).is_dir() {
             return Ok(directory);
         }
     }
 
-    Ok(documents_dir
-        .join(DEFAULT_PROJECTS_FOLDER)
-        .to_string_lossy()
-        .into_owned())
+    Ok(default_project_folder(&app)?.to_string_lossy().into_owned())
 }
 
+/// Writes `<name>.sym` into `directory` and remembers it. Fails on an invalid
+/// name or an existing file; never overwrites.
+#[instrument(skip_all, fields(name = %name, directory = %directory))]
 #[tauri::command]
 pub fn create_project(
     app: AppHandle,
@@ -398,7 +448,7 @@ pub fn create_project(
     id: String,
     directory: String,
 ) -> Result<OpenedProject, ProjectError> {
-    let (state_path, _) = app_paths(&app)?;
+    let state_path = state_file_path(&app)?;
     let now = now_millis();
     let (path, project) = create_project_in(Path::new(&directory), &name, &id, now)?;
 
@@ -414,9 +464,12 @@ pub fn create_project(
     })
 }
 
+/// Reads a project file and moves it to the front of the recent list. Fails
+/// when the path is missing, unreadable, or from a newer version.
+#[instrument(skip_all, fields(path = %path))]
 #[tauri::command]
 pub fn open_project(app: AppHandle, path: String) -> Result<OpenedProject, ProjectError> {
-    let (state_path, _) = app_paths(&app)?;
+    let state_path = state_file_path(&app)?;
     let project = read_project(Path::new(&path))?;
 
     let mut state = read_state(&state_path);
@@ -424,15 +477,16 @@ pub fn open_project(app: AppHandle, path: String) -> Result<OpenedProject, Proje
     if let Err(error) = write_state(&state_path, &state) {
         warn!(%error, "could not save recent projects after opening a project");
     }
-    info!(%path, "opened project file");
+    info!("opened project file");
 
     Ok(OpenedProject { path, project })
 }
 
 /// Removes the row only. The project file on disk is never touched.
+#[instrument(skip_all, fields(path = %path))]
 #[tauri::command]
 pub fn forget_project(app: AppHandle, path: String) -> Result<(), ProjectError> {
-    let (state_path, _) = app_paths(&app)?;
+    let state_path = state_file_path(&app)?;
     let mut state = read_state(&state_path);
     forget(&mut state, &path);
     write_state(&state_path, &state)
@@ -491,6 +545,22 @@ mod tests {
             .collect();
 
         assert!(leftovers.is_empty());
+        fs::remove_dir_all(&directory).unwrap();
+    }
+
+    #[test]
+    fn leaves_a_neighbouring_temp_file_alone() {
+        let directory = scratch_dir("neighbour");
+        let neighbour = directory.join("Film.tmp");
+        fs::write(&neighbour, "someone else's file").expect("seed neighbour");
+
+        create_project_in(&directory, "Film", "id-1", 1_000).expect("create");
+
+        assert_eq!(
+            fs::read_to_string(&neighbour).expect("read neighbour"),
+            "someone else's file"
+        );
+        assert!(directory.join("Film.sym").is_file());
         fs::remove_dir_all(&directory).unwrap();
     }
 
