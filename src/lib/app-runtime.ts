@@ -9,9 +9,7 @@ const LoggerLayer = Logger.layer([isDev ? Logger.consolePrettyBrowser() : Logger
 );
 
 /** One runtime for the app; React code goes through `runProject` below. */
-export const appRuntime = ManagedRuntime.make(
-  ProjectService.layer.pipe(Layer.provideMerge(LoggerLayer)),
-);
+const appRuntime = ManagedRuntime.make(ProjectService.layer.pipe(Layer.provideMerge(LoggerLayer)));
 
 export function runProject<A, E>(
   use: (service: ProjectService["Service"]) => Effect.Effect<A, E>,
