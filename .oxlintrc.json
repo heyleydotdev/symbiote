@@ -8,6 +8,7 @@
   "rules": {
     "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
     "react/react-in-jsx-scope": "off",
+    "eslint/require-yield": "off",
     "typescript/no-explicit-any": "error"
   },
   "ignorePatterns": ["dist", "src-tauri/target", "src/routeTree.gen.ts"]
