@@ -1,12 +1,12 @@
 # Symbiote
 
-A desktop video editor. A project is the document a user opens, and the Projects Page is where documents start.
+A desktop video editor. A Project is the unit of work a user opens, and the Projects Page is where Projects start.
 
 ## Language
 
 **Project**:
-The document a user opens and edits. Owns its Sequences and, later, its media references.
-_Avoid_: Session, workspace, file
+The unit of work a user opens and edits. Owns its Sequences and, later, its media references.
+_Avoid_: Session, workspace, document, file
 
 **Project File**:
 A single JSON file with the `.sym` extension holding one Project, saved in whatever folder the user picks.
