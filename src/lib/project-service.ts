@@ -1,7 +1,15 @@
 import { invoke } from "@tauri-apps/api/core";
 import { Context, Effect, Layer, Schema } from "effect";
 
-import { OpenedProject, Project, ProjectError, RecentProject, toProjectError } from "./project";
+import {
+  OpenedProject,
+  PROJECT_VERSION,
+  Project,
+  ProjectError,
+  RecentProject,
+  projectError,
+  toProjectError,
+} from "./project";
 
 export interface CreateProjectInput {
   readonly name: string;
@@ -10,10 +18,7 @@ export interface CreateProjectInput {
 }
 
 const unexpectedResponse = (command: string) =>
-  new ProjectError({
-    code: "unexpected",
-    message: `The backend returned an unexpected response to ${command}`,
-  });
+  projectError("unexpected", `The backend returned an unexpected response to ${command}`);
 
 /** One Tauri command: invoke it, then decode the payload before anyone uses it. */
 const call = <A>(
@@ -31,7 +36,9 @@ const call = <A>(
       ),
     ),
     Effect.tapError((error) =>
-      Effect.logError(`project command failed: ${command}: ${error.message}`),
+      Effect.logError("project command failed").pipe(
+        Effect.annotateLogs({ command, code: error.code, message: error.message }),
+      ),
     ),
     Effect.withSpan(`ProjectService.${command}`),
   );
@@ -60,7 +67,7 @@ export class ProjectService extends Context.Service<
     }),
   );
 
-  /** In-memory backend for tests and for any screen that must run without Tauri. */
+  /** In-memory backend used by tests. */
   static readonly layerMemory = Layer.effect(
     ProjectService,
     Effect.gen(function* () {
@@ -91,14 +98,14 @@ export class ProjectService extends Context.Service<
             const name = input.name.trim();
             const path = `${input.directory}/${name}.sym`;
             if (files.has(path)) {
-              return yield* new ProjectError({
-                code: "already-exists",
-                message: `A project named ${name} already exists in this folder`,
-              });
+              return yield* projectError(
+                "already-exists",
+                `A project named ${name} already exists in this folder`,
+              );
             }
             const now = Date.now();
             const project = new Project({
-              version: 1,
+              version: PROJECT_VERSION,
               id: input.id,
               name,
               createdAt: now,
@@ -114,10 +121,7 @@ export class ProjectService extends Context.Service<
           Effect.gen(function* () {
             const project = files.get(path);
             if (project === undefined) {
-              return yield* new ProjectError({
-                code: "not-found",
-                message: `No project file at ${path}`,
-              });
+              return yield* projectError("not-found", `No project file at ${path}`);
             }
             remember(path, project);
             return new OpenedProject({ path, project });

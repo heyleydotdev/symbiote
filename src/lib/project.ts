@@ -38,10 +38,19 @@ export const ProjectErrorCodes = [
   "unexpected",
 ] as const;
 
+export type ProjectErrorCode = (typeof ProjectErrorCodes)[number];
+
+/** Bumped when the file shape changes; reading any other version is refused. */
+export const PROJECT_VERSION = 1;
+
 export class ProjectError extends Schema.TaggedError<ProjectError>()("ProjectError", {
   code: Schema.Literals(ProjectErrorCodes),
   message: Schema.String,
 }) {}
+
+export function projectError(code: ProjectErrorCode, message: string): ProjectError {
+  return new ProjectError({ code, message });
+}
 
 const ErrorPayload = Schema.Struct({
   code: Schema.Literals(ProjectErrorCodes),
