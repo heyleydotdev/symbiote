@@ -2,6 +2,7 @@ import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { useEffect, useState, type FormEvent } from "react";
 
 import { runProject } from "../lib/app-runtime";
+import { joinPath } from "../lib/path";
 import { projectErrorMessage, type OpenedProject } from "../lib/project";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "./ui/dialog";
@@ -71,6 +72,14 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: NewProjectDi
     }
   };
 
+  const trimmedName = name.trim();
+  const destination =
+    directory === ""
+      ? ""
+      : trimmedName === ""
+        ? directory
+        : joinPath(directory, `${trimmedName}.sym`);
+
   return (
     <Dialog open={open} onOpenChange={changeOpen}>
       <DialogContent>
@@ -96,10 +105,10 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: NewProjectDi
             <span className="text-muted">Save to</span>
             <div className="flex items-center gap-2">
               <span
-                title={directory}
+                title={destination}
                 className="min-w-0 flex-1 truncate rounded-md border border-border bg-background px-2.5 py-2 text-xs"
               >
-                {directory === "" ? "Loading…" : directory}
+                {directory === "" ? "Loading…" : destination}
               </span>
               <Button type="button" variant="secondary" size="sm" onClick={browse}>
                 Browse…
@@ -117,7 +126,7 @@ export function NewProjectDialog({ open, onOpenChange, onCreated }: NewProjectDi
             <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
-            <Button type="submit" disabled={pending || name.trim() === "" || directory === ""}>
+            <Button type="submit" disabled={pending || trimmedName === "" || directory === ""}>
               Create project
             </Button>
           </div>
