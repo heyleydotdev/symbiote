@@ -38,6 +38,14 @@
 | Setup            | `README.md`                 |
 | Tauri config     | `src-tauri/tauri.conf.json` |
 
+## Learning more about Effect
+
+This repository uses the Effect Typescript library.
+
+Before writing any Effect code, first read `node_modules/effect/AGENTS.md` **completely**, and follow the links in the file when required.
+
+If you need to learn more about particular Effect apis and concepts that the guide doesn't cover, search through the source code in `node_modules/effect/src`.
+
 ## Agent skills
 
 ### Issue tracker
@@ -51,3 +59,11 @@ Five canonical roles, each label equal to its name. See `docs/agents/triage-labe
 ### Domain docs
 
 Single-context: one `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+
+### UI components (ui-sdk)
+
+Before using ui-sdk, follow the `ui-sdk` skill if it's installed, then read `node_modules/@ui-sdk/react/docs/llms.txt`.
+
+To build a new component, also search `node_modules/@ui-sdk/react/docs/core.md` by heading, and read `rendering.md` next to it.
+
+Components come per-entry (`@ui-sdk/react/button`), never from a root import. They are unstyled; style them with Tailwind utilities, not class names.
