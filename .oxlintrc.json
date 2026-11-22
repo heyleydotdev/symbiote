@@ -7,9 +7,29 @@
   },
   "rules": {
     "import/no-unassigned-import": ["warn", { "allow": ["**/*.css"] }],
+    "no-console": "error",
     "react/react-in-jsx-scope": "off",
     "eslint/require-yield": "off",
     "typescript/no-explicit-any": "error"
   },
+  "overrides": [
+    {
+      "files": ["src/**"],
+      "excludeFiles": ["src/components/ui/**"],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "patterns": [
+              {
+                "group": ["@ui-sdk/react/**"],
+                "message": "Wrap ui-sdk in src/components/ui; screens never import it directly."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
   "ignorePatterns": ["dist", "src-tauri/target", "src/routeTree.gen.ts"]
 }
