@@ -482,6 +482,77 @@ count++;
 
 Public utilities and Tauri commands get a short doc comment with parameters and failure cases.
 
+## Logging
+
+Frontend logs through Effect, backend logs through `tracing`. No `console.log`, `println!`, `eprintln!`, `dbg!`, or the `log` crate in app code.
+
+Levels are the same on both sides:
+
+| Level   | Use for                                                        |
+| ------- | -------------------------------------------------------------- |
+| `error` | A user-visible operation failed.                               |
+| `warn`  | Unexpected, but recovered (fallback, retry, skipped item).     |
+| `info`  | Lifecycle: startup, migration, plugin setup, completed action. |
+| `debug` | Detail useful only while developing.                           |
+
+### Frontend (Effect)
+
+- Log inside the effect pipeline with `Effect.logDebug`, `Effect.logInfo`, `Effect.logWarning`, `Effect.logError` (`Effect.log` is info).
+- Attach context with `Effect.annotateLogs({ projectId })`, never by string-building objects into the message.
+- Wrap operations in `Effect.fn("name")` or `Effect.withSpan` / `Effect.withLogSpan`, so logs carry the span, attributes and duration.
+- Configure one logger layer for the app: pretty in dev, JSON in production, with the minimum level set through `References.MinimumLogLevel`. Do not add per-file loggers.
+- Outside Effect (React handlers, error boundary, bootstrap) run the log through the app runtime (`runtime.runFork(Effect.logError(...))`) instead of reaching for `console`.
+
+```ts
+import { Effect, Layer, Logger, References } from "effect";
+
+export const LoggerLayer = Logger.layer([
+  import.meta.env.DEV ? Logger.consolePrettyBrowser : Logger.consoleJson,
+]).pipe(
+  Layer.provideMerge(
+    Layer.succeed(References.MinimumLogLevel, import.meta.env.DEV ? "Debug" : "Info"),
+  ),
+);
+```
+
+```ts
+// GOOD: structured, filtered by level, carries the span
+Effect.gen(function* () {
+  yield* Effect.logInfo("saving project");
+  // ...
+}).pipe(Effect.annotateLogs({ projectId }), Effect.withLogSpan("save-project"));
+
+// BAD: bypasses the logger and the level filter
+console.log("save-project", projectId);
+```
+
+### Backend (tracing)
+
+- Use `tracing` macros (`tracing::info!`, `warn!`, `error!`, `debug!`), with structured fields after the message: `error!(%error, %path, "read_file failed")`.
+- Add `#[tracing::instrument(skip_all, fields(...))]` to commands and IO functions so spans carry the inputs that matter.
+- Initialize the subscriber once in `run()` with `tracing_subscriber::fmt()` and an `EnvFilter` (`RUST_LOG`, defaulting to `info`, `debug` in debug builds). Crates to add when the backend first logs: `tracing`, `tracing-subscriber` (`env-filter`), plus `tracing-log` if `tauri-plugin-log` is wired for log files or the app UI.
+- Log once, at the boundary that owns the operation; return the error upward instead of logging it at every layer.
+- Message shape stays `<what failed>: <key=value context>` — identifiers, paths, counts. Never log payloads, tokens, passwords, file contents or user text that may be personal data.
+- Do not log expected outcomes: validation errors and `NotFound` returned to the UI are values, not incidents.
+- Keep messages stable and greppable — no emoji, no per-file prefixes, no restating the code.
+
+```rust
+use tracing::{error, instrument};
+
+// GOOD: span with the path, one line, at the command boundary
+#[instrument(skip_all, fields(path = %path))]
+#[tauri::command]
+fn read_file(path: String) -> Result<String, String> {
+    std::fs::read_to_string(&path).map_err(|error| {
+        error!(%error, "read_file failed");
+        format!("could not read {path}")
+    })
+}
+
+// BAD: prints instead of logging, and logs again on every layer
+println!("reading {path}");
+```
+
 ## Performance
 
 ```typescript
